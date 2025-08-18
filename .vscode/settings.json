@@ -1,0 +1,6 @@
+{
+  "sonarlint.connectedMode.project": {
+    "connectionId": "sonar-solutions",
+    "projectKey": "sonar-solutions_csharp-with-tests"
+  }
+}

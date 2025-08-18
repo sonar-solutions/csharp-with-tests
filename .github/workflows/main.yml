@@ -1,0 +1,85 @@
+name: Unit Testing on SonarCloud Enterprise Plan
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+
+env:
+  SONAR_PROJECT_KEY: "sonar-solutions_csharp-with-tests"
+  SONAR_ORG: "sonar-solutions"
+  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '6.0.x'
+      - name: Restore NuGet packages
+        run: dotnet restore Algorithms.sln
+      - name: Build the solution
+        run: dotnet build Algorithms.sln --configuration Debug
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '6.0.x'
+      - name: Add coverlet.collector
+        run: dotnet add Algorithms.Tests/Algorithms.Tests.csproj package coverlet.collector
+      - name: Run unit tests and collect coverage
+        run: |
+          dotnet test Algorithms.Tests/Algorithms.Tests.csproj \
+            --configuration Debug \
+            --verbosity normal \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./Algorithms.Tests/TestResults \
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+      - uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage
+          path: Algorithms.Tests/TestResults
+
+  sonarcloud:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '6.0.x'
+      - name: Install SonarScanner
+        run: mkdir -p .sonar/scanner && dotnet tool install dotnet-sonarscanner --tool-path .sonar/scanner
+      - name: Download code coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: code-coverage
+          path: Algorithms.Tests/TestResults
+      - name: Begin SonarCloud analysis
+        run: |
+          .sonar/scanner/dotnet-sonarscanner begin \
+            /k:"$SONAR_PROJECT_KEY" \
+            /o:"$SONAR_ORG" \
+            /d:sonar.token="$SONAR_TOKEN" \
+            /d:sonar.host.url="https://sonarcloud.io" \
+            /d:sonar.cs.opencover.reportsPaths=Algorithms.Tests/TestResults/*/coverage.opencover.xml
+      - name: Build for SonarCloud
+        run: dotnet build Algorithms.sln --configuration Debug
+      - name: End SonarCloud analysis
+        run: .sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
