@@ -1,4 +1,4 @@
-# SonarQube Cloud Scanning: Demo CSharp Project 
+# SonarQube Cloud Scanning: Demo CSharp Project  
 With Unit Testing Coverage
 
 ---
