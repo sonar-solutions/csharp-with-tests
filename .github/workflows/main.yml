@@ -78,7 +78,7 @@ jobs:
             /o:"$SONAR_ORG" \
             /d:sonar.token="$SONAR_TOKEN" \
             /d:sonar.host.url="https://sonarcloud.io" \
-            /d:sonar.cs.opencover.reportsPaths=Algorithms.Tests/TestResults/*/coverage.opencover.xml
+            /d:sonar.cs.opencover.reportsPaths=Algorithms.Tests/TestResults/*/coverage.opencover.xml \
             /d:sonar.exclusions=".sonar/**/*"
       - name: Build for SonarCloud
         run: dotnet build Algorithms.sln --configuration Debug
